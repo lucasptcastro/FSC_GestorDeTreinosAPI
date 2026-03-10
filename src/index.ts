@@ -2,7 +2,7 @@ import "dotenv/config";
 
 import fastifyCors from "@fastify/cors";
 import fastifySwagger from "@fastify/swagger";
-import fastifySwaggerUi from "@fastify/swagger-ui";
+import fastifyApiReference from "@scalar/fastify-api-reference";
 import Fastify from "fastify";
 import {
   jsonSchemaTransform,
@@ -40,14 +40,41 @@ await app.register(fastifySwagger, {
   transform: jsonSchemaTransform,
 });
 
-// Registra o plugin do Swagger UI para servir a documentação interativa do Swagger na rota "/docs"
-await app.register(fastifySwaggerUi, {
-  routePrefix: "/docs",
-});
-
+// Registra o plugin do Swagger UI para servir a documentação interativa da API
 await app.register(fastifyCors, {
   origin: ["http://localhost:3000"], // Permite apenas solicitações de origens confiáveis
   credentials: true, // Permite o envio de cookies e credenciais de autenticação
+});
+
+// Registra o plugin do Scalar para servir a documentação interativa da API
+await app.register(fastifyApiReference, {
+  routePrefix: "/docs",
+  configuration: {
+    sources: [
+      {
+        title: "Bootcamp Treinos API",
+        slug: "bootcamp-treinos-api",
+        url: "/swagger.json", // URL para o arquivo de especificação OpenAPI gerado pelo fastifySwagger
+      },
+      {
+        title: "Auth API",
+        slug: "auth-api",
+        url: "/api/auth/open-api/generate-schema", // URL para o endpoint que gera a especificação OpenAPI do Better Auth
+      },
+    ],
+  },
+});
+
+// Define a rota GET "/swagger.json" para retornar a especificação OpenAPI gerada pelo fastifySwagger, escondendo esta rota da documentação do Swagger UI para evitar confusão com o endpoint de autenticação do Better Auth
+app.withTypeProvider<ZodTypeProvider>().route({
+  method: "GET",
+  url: "/swagger.json",
+  schema: {
+    hide: true, // Esconde esta rota da documentação do Swagger UI
+  },
+  handler: async () => {
+    return app.swagger(); // Retorna a especificação OpenAPI gerada pelo fastifySwagger
+  },
 });
 
 // Define a rota GET "/" com um schema de resposta usando Zod e a descrição para o Swagger
