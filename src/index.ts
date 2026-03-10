@@ -1,5 +1,6 @@
 import "dotenv/config";
 
+import fastifyCors from "@fastify/cors";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
 import Fastify from "fastify";
@@ -10,6 +11,8 @@ import {
   ZodTypeProvider,
 } from "fastify-type-provider-zod";
 import z from "zod";
+
+import { auth } from "./lib/auth.js";
 
 const app = Fastify({
   logger: true,
@@ -42,6 +45,11 @@ await app.register(fastifySwaggerUi, {
   routePrefix: "/docs",
 });
 
+await app.register(fastifyCors, {
+  origin: ["http://localhost:3000"], // Permite apenas solicitações de origens confiáveis
+  credentials: true, // Permite o envio de cookies e credenciais de autenticação
+});
+
 // Define a rota GET "/" com um schema de resposta usando Zod e a descrição para o Swagger
 app.withTypeProvider<ZodTypeProvider>().route({
   method: "GET",
@@ -59,6 +67,45 @@ app.withTypeProvider<ZodTypeProvider>().route({
     return {
       message: "Hello World",
     };
+  },
+});
+
+// Define uma rota para lidar com autenticação em "/api/auth/*" que aceita métodos GET e POST, processa a requisição usando o handler de autenticação e encaminha a resposta para o cliente, incluindo tratamento de erros.
+app.route({
+  method: ["GET", "POST"],
+  url: "/api/auth/*",
+  async handler(request, reply) {
+    try {
+      // Constrói a URL completa da requisição usando o caminho e os headers do Fastify
+      const url = new URL(request.url, `http://${request.headers.host}`);
+
+      // Converte os headers do Fastify para um objeto Headers padrão
+      const headers = new Headers();
+      Object.entries(request.headers).forEach(([key, value]) => {
+        if (value) headers.append(key, value.toString());
+      });
+
+      // Cria uma requisição compatível com a Fetch API
+      const req = new Request(url.toString(), {
+        method: request.method,
+        headers,
+        ...(request.body ? { body: JSON.stringify(request.body) } : {}),
+      });
+
+      // Processa a requisição de autenticação
+      const response = await auth.handler(req);
+
+      // Encaminha a resposta para o cliente
+      reply.status(response.status);
+      response.headers.forEach((value, key) => reply.header(key, value));
+      reply.send(response.body ? await response.text() : null);
+    } catch (error) {
+      app.log.error(error);
+      reply.status(500).send({
+        error: "Internal authentication error",
+        code: "AUTH_FAILURE",
+      });
+    }
   },
 });
 
