@@ -47,6 +47,7 @@ export class CreateWorkoutPlan {
 
       const workoutPlan = await tx.workoutPlan.create({
         data: {
+          // caso queira que o ID seja gerado pelo usecase basta usar `id: crypto.randomUUID()`
           name: dto.name,
           userId: dto.userId,
           isActive: true,

@@ -44,12 +44,18 @@ Visão geral (arquivos principais):
 ├─ prisma.config.ts
 ├─ src/
 │  ├─ index.ts
+│  ├─ errors/
+│  │  └─ index.ts
 │  ├─ lib/
 │  │  ├─ auth.ts
 │  │  └─ db.ts
 │  ├─ generated/
 │  │  └─ prisma/         # Prisma Client gerado (output configurado no schema.prisma)
-│  └─ usescases/
+│  ├─ routes/
+│  │  └─ workout-plan.ts
+│  ├─ schemas/
+│  │  └─ index.ts
+│  └─ usecases/
 │     └─ CreateWorkoutPlan.ts
 └─ readme.md
 ```
@@ -84,7 +90,7 @@ Configura o Better Auth:
 
 Código **gerado automaticamente** pelo Prisma Client. Não editar manualmente.
 
-### `src/usescases/CreateWorkoutPlan.ts`
+### `src/usecases/CreateWorkoutPlan.ts`
 
 Use case (camada de regra de negócio) para criar um plano de treino.
 
@@ -204,9 +210,13 @@ Resposta:
 Endpoint para criação de plano de treino.
 
 - Validação de entrada feita com Zod
-- Resposta prevista:
-  - `201` → `{ id: <uuid> }`
-  - `400` → `{ error: string, code: string }`
+- Requer autenticação (sessão do Better Auth). Se não houver sessão, retorna `401`.
+- Respostas:
+  - `201` → retorna o plano criado (formato do `WorkoutPlanSchema`)
+  - `400` → `{ error: string, code: string }` (validação/contrato)
+  - `401` → `{ error: string, code: string }` (não autenticado)
+  - `404` → `{ error: string, code: string }` (caso raro: plano não encontrado após criação)
+  - `500` → `{ error: string, code: string }`
 
 Payload (formato):
 
@@ -233,14 +243,41 @@ Payload (formato):
 }
 ```
 
+Resposta `201` (formato):
+
+```json
+{
+  "id": "0d6d9a1f-4f87-4c72-8ea1-8c2f1a1b3e2c",
+  "name": "Treino ABC",
+  "workoutDays": [
+    {
+      "name": "Treino A",
+      "weekDay": "MONDAY",
+      "isRest": false,
+      "estimatedDurationInSeconds": 3600,
+      "exercises": [
+        {
+          "order": 0,
+          "name": "Supino reto",
+          "sets": 4,
+          "reps": 10,
+          "restTimeInSeconds": 90
+        }
+      ]
+    }
+  ]
+}
+```
+
 Enum `WeekDay`:
 
 - `SUNDAY`, `MONDAY`, `TUESDAY`, `WEDNESDAY`, `THURSDAY`, `FRIDAY`, `SATURDAY`
 
-Status do código:
+Implementação:
 
-- A rota está declarada em `src/index.ts`, mas o `handler` ainda está vazio.
-- A lógica de negócio existe em `src/usescases/CreateWorkoutPlan.ts` (use case), porém o arquivo ainda não exporta a classe e a rota ainda não chama esse use case.
+- Rota: `src/routes/workout-plan.ts`
+- Use case: `src/usecases/CreateWorkoutPlan.ts`
+- Para identificar o usuário, a rota usa `auth.api.getSession()` do Better Auth (com headers da requisição).
 
 ### `GET|POST /api/auth/*`
 
@@ -266,6 +303,7 @@ Modelos principais no Prisma:
 - `WorkoutPlan`
 - `WorkoutDay`
 - `WorkoutExercise`
+- `WorkoutSession`
 
 E modelos de autenticação (Better Auth via Prisma):
 
@@ -288,6 +326,13 @@ Cada `WorkoutPlan` possui vários `WorkoutDay`:
 - `weekDay` é obrigatório e vem do enum `WeekDay`
 - `isRest` indica dia de descanso
 - `estimatedDurationInSeconds` é obrigatório (mínimo 1 na validação do endpoint)
+
+### Sessões de treino
+
+Cada `WorkoutDay` pode ter várias `WorkoutSession`, para registrar execuções reais do treino:
+
+- `startedAt`: início do treino
+- `completedAt`: fim do treino (opcional)
 
 ### Exercícios
 

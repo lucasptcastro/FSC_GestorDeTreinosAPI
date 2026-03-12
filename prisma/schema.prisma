@@ -43,10 +43,10 @@ model WorkoutPlan {
   id          String       @id @default(uuid())
   name        String
   userId      String
-  user        User         @relation(fields: [userId], references: [id]) // relação entre WorkoutPlan e User, onde userId é a chave estrangeira que referencia o id do User
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade) // relação entre WorkoutPlan e User, onde userId é a chave estrangeira que referencia o id do User
   isActive    Boolean      @default(true)
-  createdAt   DateTime     @default(now()) // timestamp com dia/mês/ano e hora da criação
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime     @default(now()) @db.Timestamptz() // timestamp com dia/mês/ano e hora da criação
+  updatedAt   DateTime     @updatedAt @db.Timestamptz()
   workoutDays WorkoutDay[]
 }
 
@@ -54,13 +54,14 @@ model WorkoutDay {
   id                         String            @id @default(uuid())
   name                       String
   workoutPlanId              String
-  workoutPlan                WorkoutPlan       @relation(fields: [workoutPlanId], references: [id]) // relação entre WorkoutDay e WorkoutPlan, onde workoutPlanId é a chave estrangeira
+  workoutPlan                WorkoutPlan       @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade) // relação entre WorkoutDay e WorkoutPlan, onde workoutPlanId é a chave estrangeira
   isRest                     Boolean           @default(false) // campo para indicar se o dia é de descanso
   weekDay                    WeekDay
   exercises                  WorkoutExercise[]
   estimatedDurationInSeconds Int // campo para armazenar a duração estimada do treino em segundos
-  createdAt                  DateTime          @default(now())
-  updatedAt                  DateTime          @updatedAt
+  createdAt                  DateTime          @default(now()) @db.Timestamptz()
+  updatedAt                  DateTime          @updatedAt @db.Timestamptz()
+  sessions                   WorkoutSession[] // relação entre WorkoutDay e WorkoutSession, onde um WorkoutDay pode ter várias WorkoutSessions
 }
 
 model WorkoutExercise {
@@ -68,12 +69,22 @@ model WorkoutExercise {
   name              String
   order             Int
   workoutDayId      String
-  workoutDay        WorkoutDay @relation(fields: [workoutDayId], references: [id]) // relação entre WorkoutExercise e WorkoutDay, onde workoutDayId é a chave estrangeira
+  workoutDay        WorkoutDay @relation(fields: [workoutDayId], references: [id], onDelete: Cascade) // relação entre WorkoutExercise e WorkoutDay, onde workoutDayId é a chave estrangeira
   sets              Int
   reps              Int
   restTimeInSeconds Int
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
+  createdAt         DateTime   @default(now()) @db.Timestamptz()
+  updatedAt         DateTime   @updatedAt @db.Timestamptz()
+}
+
+model WorkoutSession {
+  id           String     @id @default(uuid())
+  workoutDayId String
+  workoutDay   WorkoutDay @relation(fields: [workoutDayId], references: [id], onDelete: Cascade) // relação entre WorkoutSession e WorkoutDay, onde workoutDayId é a chave estrangeira
+  startedAt    DateTime   @db.Timestamptz()
+  completedAt  DateTime?  @db.Timestamptz() // o @db.Timestamptz() garante que o campo seja armazenado como um timestamp com fuso horário no PostgreSQL
+  createdAt    DateTime   @default(now()) @db.Timestamptz()
+  updatedAt    DateTime   @updatedAt @db.Timestamptz()
 }
 
 model Session {
