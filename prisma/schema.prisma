@@ -51,15 +51,16 @@ model WorkoutPlan {
 }
 
 model WorkoutDay {
-  id            String            @id @default(uuid())
-  name          String
-  workoutPlanId String
-  workoutPlan   WorkoutPlan       @relation(fields: [workoutPlanId], references: [id]) // relação entre WorkoutDay e WorkoutPlan, onde workoutPlanId é a chave estrangeira
-  isRest        Boolean           @default(false) // campo para indicar se o dia é de descanso
-  weekDay       WeekDay
-  exercises     WorkoutExercise[]
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  id                         String            @id @default(uuid())
+  name                       String
+  workoutPlanId              String
+  workoutPlan                WorkoutPlan       @relation(fields: [workoutPlanId], references: [id]) // relação entre WorkoutDay e WorkoutPlan, onde workoutPlanId é a chave estrangeira
+  isRest                     Boolean           @default(false) // campo para indicar se o dia é de descanso
+  weekDay                    WeekDay
+  exercises                  WorkoutExercise[]
+  estimatedDurationInSeconds Int // campo para armazenar a duração estimada do treino em segundos
+  createdAt                  DateTime          @default(now())
+  updatedAt                  DateTime          @updatedAt
 }
 
 model WorkoutExercise {
