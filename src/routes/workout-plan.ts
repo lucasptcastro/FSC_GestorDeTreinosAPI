@@ -4,7 +4,11 @@ import { ZodTypeProvider } from "fastify-type-provider-zod";
 
 import { NotFoundError } from "../errors/index.js";
 import { auth } from "../lib/auth.js";
-import { ErrorSchema, WorkoutPlanSchema } from "../schemas/index.js";
+import {
+  ErrorSchema,
+  WorkoutPlanResponseSchema,
+  WorkoutPlanSchema,
+} from "../schemas/index.js";
 import { CreateWorkoutPlan } from "../usecases/CreateWorkoutPlan.js";
 
 export const workoutPlanRoutes = async (app: FastifyInstance) => {
@@ -14,7 +18,7 @@ export const workoutPlanRoutes = async (app: FastifyInstance) => {
     schema: {
       body: WorkoutPlanSchema.omit({ id: true }), // segue o schema de WorkoutPlan, mas sem o campo "id" que é gerado pelo sistema
       response: {
-        201: WorkoutPlanSchema,
+        201: WorkoutPlanResponseSchema,
         400: ErrorSchema,
         401: ErrorSchema,
         404: ErrorSchema,
