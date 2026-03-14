@@ -270,3 +270,4 @@ export class CreateWorkoutPlan {
 - **ESLint** com typescript-eslint, integracao com prettier e `simple-import-sort` (imports devem ser ordenados)
 - **CORS** permite `http://localhost:3000` com credentials
 - Variaveis de ambiente: `PORT`, `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
+- **Datas**: **SEMPRE** use `dayjs` com o plugin `utc` para manipular e formatar datas. **NUNCA** use `new Date().toISOString().split("T")[0]` ou manipulação manual de strings de data. Importe como `import dayjs from "dayjs"` e `import utc from "dayjs/plugin/utc.js"`, e inicialize com `dayjs.extend(utc)`.
