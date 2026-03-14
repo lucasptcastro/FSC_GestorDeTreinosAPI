@@ -13,6 +13,7 @@ import {
 import z from "zod";
 
 import { auth } from "./lib/auth.js";
+import { homeRoutes } from "./routes/home.js";
 import { workoutPlanRoutes } from "./routes/workout-plan.js";
 
 const app = Fastify({
@@ -68,6 +69,7 @@ await app.register(fastifyApiReference, {
 
 // Rotas
 await app.register(workoutPlanRoutes, { prefix: "/workout-plans" });
+await app.register(homeRoutes, { prefix: "/home" });
 
 // Define a rota GET "/swagger.json" para retornar a especificação OpenAPI gerada pelo fastifySwagger, escondendo esta rota da documentação do Swagger UI para evitar confusão com o endpoint de autenticação do Better Auth
 app.withTypeProvider<ZodTypeProvider>().route({
