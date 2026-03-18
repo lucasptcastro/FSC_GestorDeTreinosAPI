@@ -6,9 +6,13 @@ import { prisma } from "./db.js";
 
 // Configura o Better Auth com o provedor de email e senha habilitado, o adaptador do Prisma para PostgreSQL e o plugin OpenAPI para gerar a documentação da API
 export const auth = betterAuth({
+  baseURL: process.env.BETTER_AUTH_URL,
   trustedOrigins: ["http://localhost:3000"], // Permite apenas solicitações de origens confiáveis
-  emailAndPassword: {
-    enabled: true,
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+    },
   },
   database: prismaAdapter(prisma, {
     provider: "postgresql",
