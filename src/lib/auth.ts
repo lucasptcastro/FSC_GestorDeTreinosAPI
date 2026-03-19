@@ -10,6 +10,7 @@ export const auth = betterAuth({
   trustedOrigins: ["http://localhost:3000"], // Permite apenas solicitações de origens confiáveis
   socialProviders: {
     google: {
+      prompt: "select_account", // Sempre solicita ao usuário que selecione uma conta do Google para login
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
