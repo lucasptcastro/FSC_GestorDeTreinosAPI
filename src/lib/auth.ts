@@ -23,6 +23,7 @@ export const auth = betterAuth({
   advanced: {
     crossSubDomainCookies: {
       enabled: true, // Habilita cookies entre subdomínios para permitir autenticação em diferentes partes do aplicativo
+      domain: env.NODE_ENV === "production" ? ".groves.com.br" : undefined, // Define o domínio para os cookies, permitindo que sejam compartilhados entre subdomínios
     },
   },
 });
