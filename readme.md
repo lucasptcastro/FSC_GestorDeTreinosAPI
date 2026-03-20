@@ -2,9 +2,14 @@
 
 API do projeto **Gestor de Treinos** (bootcamp), responsável por:
 
-- Autenticação (email/senha) e sessões
+- Autenticação (email/senha e Google OAuth) e sessões
 - Persistência dos dados (PostgreSQL)
 - Cadastro de **Planos de Treino** (Workout Plans) com **Dias de Treino** e **Exercícios**
+- **Gerenciamento de Sessões de Treino** (início/conclusão)
+- **Dashboard** com dados do dia atual e streak semanal
+- **Estatísticas** de treino com consistência, taxa de conclusão e tempo total
+- **Dados do Usuário** (peso, altura, idade, % de gordura)
+- **Personal Trainer Virtual** com IA (GPT-4o-mini) via streaming
 - Exposição de documentação OpenAPI (Swagger + Scalar)
 
 Este README foi escrito para servir como referência: quando você voltar aqui no futuro, deve conseguir entender **como o projeto está organizado, como roda localmente e quais regras de negócio existem**.
@@ -21,7 +26,9 @@ Este README foi escrito para servir como referência: quando você voltar aqui n
 - **Scalar API Reference** (`@scalar/fastify-api-reference`) para UI de documentação (`/docs`)
 - **Prisma ORM** + **@prisma/adapter-pg** para PostgreSQL
 - **PostgreSQL** via Docker Compose
-- **Better Auth** para autenticação (email/senha) com adaptador Prisma
+- **Better Auth** para autenticação (email/senha + Google OAuth) com adaptador Prisma
+- **Vercel AI SDK** (`ai` + `@ai-sdk/openai`) para integração com GPT-4o-mini
+- **Day.js** para manipulação de datas
 - **ESLint + Prettier** (config flat)
 
 ---
@@ -52,11 +59,24 @@ Visão geral (arquivos principais):
 │  ├─ generated/
 │  │  └─ prisma/         # Prisma Client gerado (output configurado no schema.prisma)
 │  ├─ routes/
+│  │  ├─ ai.ts
+│  │  ├─ home.ts
+│  │  ├─ me.ts
+│  │  ├─ stats.ts
 │  │  └─ workout-plan.ts
 │  ├─ schemas/
 │  │  └─ index.ts
 │  └─ usecases/
-│     └─ CreateWorkoutPlan.ts
+│     ├─ CreateWorkoutPlan.ts
+│     ├─ GetHomeData.ts
+│     ├─ GetStats.ts
+│     ├─ GetUserTrainData.ts
+│     ├─ GetWorkoutDay.ts
+│     ├─ GetWorkoutPlan.ts
+│     ├─ ListWorkoutPlans.ts
+│     ├─ StartWorkoutSession.ts
+│     ├─ UpdateWorkoutSession.ts
+│     └─ UpsertUserTrainData.ts
 └─ readme.md
 ```
 
@@ -69,7 +89,7 @@ Entry-point do servidor. Responsabilidades:
 - Registra Swagger/OpenAPI
 - Registra CORS (origens confiáveis e `credentials: true`)
 - Registra o Scalar em `/docs`
-- Define rotas (ex.: `/`, `/swagger.json`, `/workout-plans` e proxy de auth em `/api/auth/*`)
+- Registra rotas: `/workout-plans`, `/home`, `/stats`, `/ai`, `/me`, `/swagger.json`, `/` e proxy de auth em `/api/auth/*`
 
 ### `src/lib/db.ts`
 
@@ -83,6 +103,7 @@ Cria e exporta a instância do Prisma Client.
 Configura o Better Auth:
 
 - Email/senha habilitado
+- Login social com Google (`socialProviders.google`)
 - Adaptador Prisma (PostgreSQL)
 - Plugin `openAPI()` para expor schema OpenAPI de auth
 
@@ -90,9 +111,30 @@ Configura o Better Auth:
 
 Código **gerado automaticamente** pelo Prisma Client. Não editar manualmente.
 
-### `src/usecases/CreateWorkoutPlan.ts`
+### `src/usecases/`
 
-Use case (camada de regra de negócio) para criar um plano de treino.
+Use cases (camada de regra de negócio):
+
+| Use Case               | Descrição                                                                              |
+| ---------------------- | -------------------------------------------------------------------------------------- |
+| `CreateWorkoutPlan`    | Cria um plano de treino (desativa o plano ativo anterior)                              |
+| `ListWorkoutPlans`     | Lista planos de treino do usuário (filtro opcional por `active`)                       |
+| `GetWorkoutPlan`       | Busca um plano de treino por ID                                                        |
+| `GetWorkoutDay`        | Busca um dia de treino com exercícios e sessões                                        |
+| `StartWorkoutSession`  | Inicia uma sessão de treino para um dia específico                                     |
+| `UpdateWorkoutSession` | Atualiza uma sessão (marca como concluída com `completedAt`)                           |
+| `GetHomeData`          | Retorna dados do dashboard: treino do dia, streak e consistência semanal               |
+| `GetStats`             | Calcula estatísticas em um intervalo de datas (streak, taxa de conclusão, tempo total) |
+| `GetUserTrainData`     | Busca dados físicos do usuário (peso, altura, idade, % gordura)                        |
+| `UpsertUserTrainData`  | Cria ou atualiza dados físicos do usuário                                              |
+
+### `src/errors/index.ts`
+
+Classes de erro customizadas:
+
+- `NotFoundError` — recurso não encontrado (HTTP 404)
+- `WorkoutPlanNotActiveError` — tentativa de iniciar sessão em plano inativo (HTTP 422)
+- `ConflictError` — sessão já existe para o dia (HTTP 409)
 
 ---
 
@@ -140,6 +182,9 @@ Variáveis usadas:
 - `DATABASE_URL` (PostgreSQL)
 - `BETTER_AUTH_SECRET` (segredo para assinar tokens/cookies; preencha com um valor forte)
 - `BETTER_AUTH_URL` (base URL da API, ex.: `http://localhost:8081`)
+- `GOOGLE_CLIENT_ID` (Client ID do Google OAuth)
+- `GOOGLE_CLIENT_SECRET` (Client Secret do Google OAuth)
+- `OPENAI_API_KEY` (chave da API OpenAI, usada pelo Vercel AI SDK para o personal trainer virtual)
 
 ### 3) Instalar dependências
 
@@ -205,18 +250,23 @@ Resposta:
 { "message": "Hello World" }
 ```
 
+### `GET /workout-plans`
+
+Lista planos de treino do usuário autenticado.
+
+- Requer autenticação.
+- Query params: `active` (opcional) — `"true"` ou `"false"` para filtrar por status.
+- Respostas:
+  - `200` → array de planos de treino com dias e exercícios
+  - `401` / `500`
+- Implementação: `src/routes/workout-plan.ts` → `ListWorkoutPlans`
+
 ### `POST /workout-plans`
 
-Endpoint para criação de plano de treino.
+Cria um plano de treino.
 
-- Validação de entrada feita com Zod
-- Requer autenticação (sessão do Better Auth). Se não houver sessão, retorna `401`.
-- Respostas:
-  - `201` → retorna o plano criado (formato do `WorkoutPlanSchema`)
-  - `400` → `{ error: string, code: string }` (validação/contrato)
-  - `401` → `{ error: string, code: string }` (não autenticado)
-  - `404` → `{ error: string, code: string }` (caso raro: plano não encontrado após criação)
-  - `500` → `{ error: string, code: string }`
+- Requer autenticação.
+- Respostas: `201` / `400` / `401` / `404` / `500`
 
 Payload (formato):
 
@@ -229,6 +279,7 @@ Payload (formato):
       "weekDay": "MONDAY",
       "isRest": false,
       "estimatedDurationInSeconds": 3600,
+      "coverImageUrl": "https://...",
       "exercises": [
         {
           "order": 0,
@@ -243,41 +294,98 @@ Payload (formato):
 }
 ```
 
-Resposta `201` (formato):
+Enum `WeekDay`: `SUNDAY`, `MONDAY`, `TUESDAY`, `WEDNESDAY`, `THURSDAY`, `FRIDAY`, `SATURDAY`
 
-```json
-{
-  "id": "0d6d9a1f-4f87-4c72-8ea1-8c2f1a1b3e2c",
-  "name": "Treino ABC",
-  "workoutDays": [
-    {
-      "name": "Treino A",
-      "weekDay": "MONDAY",
-      "isRest": false,
-      "estimatedDurationInSeconds": 3600,
-      "exercises": [
-        {
-          "order": 0,
-          "name": "Supino reto",
-          "sets": 4,
-          "reps": 10,
-          "restTimeInSeconds": 90
-        }
-      ]
-    }
-  ]
-}
-```
+- Implementação: `src/routes/workout-plan.ts` → `CreateWorkoutPlan`
 
-Enum `WeekDay`:
+### `GET /workout-plans/:id`
 
-- `SUNDAY`, `MONDAY`, `TUESDAY`, `WEDNESDAY`, `THURSDAY`, `FRIDAY`, `SATURDAY`
+Busca um plano de treino por ID.
 
-Implementação:
+- Requer autenticação.
+- Respostas: `200` (plano com dias e exercícios) / `401` / `404` / `500`
+- Implementação: `src/routes/workout-plan.ts` → `GetWorkoutPlan`
 
-- Rota: `src/routes/workout-plan.ts`
-- Use case: `src/usecases/CreateWorkoutPlan.ts`
-- Para identificar o usuário, a rota usa `auth.api.getSession()` do Better Auth (com headers da requisição).
+### `GET /workout-plans/:workoutPlanId/days/:workoutDayId`
+
+Busca um dia de treino com exercícios e sessões.
+
+- Requer autenticação.
+- Respostas: `200` / `401` / `404` / `500`
+- Implementação: `src/routes/workout-plan.ts` → `GetWorkoutDay`
+
+### `POST /workout-plans/:workoutPlanId/days/:workoutDayId/sessions`
+
+Inicia uma sessão de treino.
+
+- Requer autenticação.
+- Respostas:
+  - `201` → `{ userWorkoutSessionId: string }`
+  - `401` / `404` / `409` (sessão já existe) / `422` (plano inativo) / `500`
+- Implementação: `src/routes/workout-plan.ts` → `StartWorkoutSession`
+
+### `PATCH /workout-plans/:workoutPlanId/days/:workoutDayId/sessions/:workoutSessionId`
+
+Atualiza uma sessão de treino (marca como concluída).
+
+- Requer autenticação.
+- Body: `{ "completedAt": "2025-03-20T10:30:00Z" }`
+- Respostas:
+  - `200` → `{ id, completedAt, startedAt }`
+  - `401` / `404` / `500`
+- Implementação: `src/routes/workout-plan.ts` → `UpdateWorkoutSession`
+
+### `GET /home/:date`
+
+Retorna dados do dashboard para uma data específica (formato `YYYY-MM-DD`).
+
+- Requer autenticação.
+- Respostas:
+  - `200` → dados do dia atual: treino do dia (`todayWorkoutDay`), ID do plano ativo, streak semanal, consistência diária, contagem de sessões por dia
+  - `401` / `404` / `500`
+- Implementação: `src/routes/home.ts` → `GetHomeData`
+
+### `GET /me`
+
+Busca dados físicos do usuário autenticado (peso, altura, idade, % de gordura).
+
+- Requer autenticação.
+- Respostas: `200` (dados ou `null` se não cadastrado) / `401` / `500`
+- Implementação: `src/routes/me.ts` → `GetUserTrainData`
+
+### `PUT /me`
+
+Cria ou atualiza dados físicos do usuário.
+
+- Requer autenticação.
+- Body: `{ weightInGrams, heightInCentimeters, age, bodyFatPercentage }`
+- Respostas: `200` / `401` / `500`
+- Implementação: `src/routes/me.ts` → `UpsertUserTrainData`
+
+### `GET /stats`
+
+Retorna estatísticas de treino para um intervalo de datas.
+
+- Requer autenticação.
+- Query params: `from` e `to` (formato `YYYY-MM-DD`)
+- Respostas:
+  - `200` → `{ workoutStreak, consistencyByDay, completedWorkoutsCount, conclusionRate, totalTimeInSeconds }`
+  - `401` / `404` / `500`
+- Implementação: `src/routes/stats.ts` → `GetStats`
+
+### `POST /ai`
+
+Chat com o personal trainer virtual (IA).
+
+- Requer autenticação.
+- Body: `{ messages: UIMessage[] }` (formato Vercel AI SDK)
+- Resposta: stream de texto (GPT-4o-mini)
+- A IA possui ferramentas (tools) para:
+  - Buscar dados físicos do usuário (`getUserTrainData`)
+  - Atualizar dados físicos do usuário (`updateUserTrainData`)
+  - Listar planos de treino (`getWorkoutPlans`)
+  - Criar plano de treino completo de 7 dias (`createWorkoutPlan`)
+- Implementação: `src/routes/ai.ts`
 
 ### `GET|POST /api/auth/*`
 
@@ -285,11 +393,7 @@ Proxy para o Better Auth.
 
 - O Fastify converte a requisição em uma `Request` compatível com Fetch API e delega para `auth.handler(req)`.
 - A resposta (status/headers/body) é repassada ao cliente.
-
-Observações importantes:
-
-- CORS está configurado para permitir origem `http://localhost:3000` com `credentials: true`.
-- Isso é relevante caso o Better Auth use cookies/sessões.
+- CORS permite origem `http://localhost:3000` com `credentials: true`.
 
 ---
 
@@ -319,6 +423,17 @@ Implementada no use case `CreateWorkoutPlan.execute()`:
 - Se existir, ele é desativado (`isActive: false`).
 - Em seguida, cria o novo `WorkoutPlan` com `isActive: true`.
 
+### Dados físicos do usuário
+
+O modelo `User` possui campos opcionais para dados físicos:
+
+- `weightInGrams` — peso em gramas (ex: 70kg = 70000)
+- `heightInCentimeters` — altura em centímetros
+- `age` — idade
+- `bodyFatPercentage` — percentual de gordura corporal (0 a 100, onde 100 = 100%)
+
+Gerenciados via `GET /me` e `PUT /me`.
+
 ### Dias de treino
 
 Cada `WorkoutPlan` possui vários `WorkoutDay`:
@@ -326,6 +441,7 @@ Cada `WorkoutPlan` possui vários `WorkoutDay`:
 - `weekDay` é obrigatório e vem do enum `WeekDay`
 - `isRest` indica dia de descanso
 - `estimatedDurationInSeconds` é obrigatório (mínimo 1 na validação do endpoint)
+- `coverImageUrl` (opcional) — URL de imagem de capa do dia
 
 ### Sessões de treino
 
@@ -333,6 +449,40 @@ Cada `WorkoutDay` pode ter várias `WorkoutSession`, para registrar execuções 
 
 - `startedAt`: início do treino
 - `completedAt`: fim do treino (opcional)
+
+Regras:
+
+- Só é possível iniciar uma sessão se o plano estiver ativo (`isActive: true`). Caso contrário, lança `WorkoutPlanNotActiveError` (422).
+- Não é permitido criar sessão duplicada para o mesmo dia. Caso já exista, lança `ConflictError` (409).
+
+### Streak de treinos
+
+O sistema calcula o streak (sequência consecutiva) de treinos do usuário:
+
+- Determina quais dias são de treino vs descanso no plano ativo
+- Percorre retroativamente até 365 dias a partir da data atual
+- Conta dias consecutivos em que o treino foi realizado (ou era dia de descanso)
+- Para de contar ao encontrar o primeiro dia de treino não realizado
+- Utilizado nos endpoints `/home/:date` e `/stats`
+
+### Estatísticas
+
+O endpoint `/stats` calcula métricas em um intervalo de datas:
+
+- `workoutStreak` — sequência de dias consecutivos com treinos realizados
+- `consistencyByDay` — mapa de data → `{ workoutDayCompleted, workoutDayStarted }`
+- `completedWorkoutsCount` — total de sessões concluídas no período
+- `conclusionRate` — porcentagem de sessões concluídas (0 a 1)
+- `totalTimeInSeconds` — soma do tempo das sessões concluídas
+
+### Personal Trainer Virtual (IA)
+
+O endpoint `POST /ai` expõe um chat com IA via streaming:
+
+- Modelo: GPT-4o-mini (via Vercel AI SDK + `@ai-sdk/openai`)
+- A IA assume o papel de personal trainer virtual com tom amigável e motivador
+- Possui acesso a ferramentas para consultar e alterar dados do usuário e criar/listar planos de treino
+- Segue princípios de treino (splits Full Body, ABC, Upper/Lower, PPLUL, PPL 2x) para montar planos de 7 dias
 
 ### Exercícios
 
