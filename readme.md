@@ -45,6 +45,7 @@ Visão geral (arquivos principais):
 
 ```
 .
+├─ Dockerfile
 ├─ docker-compose.yml
 ├─ prisma/
 │  └─ schema.prisma
@@ -215,6 +216,47 @@ npm run dev
 ```
 
 Servidor sobe por padrão em `http://localhost:8081`.
+
+---
+
+## Docker (imagem de produção)
+
+O projeto possui um `Dockerfile` com **multi-stage build** para gerar uma imagem de produção otimizada.
+
+### Estágios do build
+
+| Estágio        | Descrição                                                                                                                                                         |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **base**       | Imagem `node:24-slim`. Define o diretório de trabalho e copia `package.json`, `package-lock.json` e a pasta `prisma/`.                                            |
+| **deps**       | Instala **todas** as dependências (`npm ci`), incluindo as de desenvolvimento.                                                                                    |
+| **build**      | Copia o código-fonte, executa `npm run build` (compila TypeScript para `dist/`) e copia `src/generated` para `dist/generated` (Prisma Client gerado).             |
+| **production** | Instala apenas dependências de produção (`npm ci --omit=dev --ignore-scripts`), copia o `dist/` do estágio de build e inicia o servidor com `node dist/index.js`. |
+
+### Construir a imagem
+
+```bash
+docker build -t gestao-treinos-api .
+```
+
+### Rodar o container
+
+```bash
+docker run -d \
+  --name gestao-treinos-api \
+  -p 8081:8081 \
+  -e DATABASE_URL="postgresql://postgres:password@host.docker.internal:5433/bootcamp-treinos-api" \
+  -e BETTER_AUTH_SECRET="seu-segredo" \
+  -e BETTER_AUTH_URL="http://localhost:8081" \
+  -e OPENAI_API_KEY="sk-..." \
+  gestao-treinos-api
+```
+
+> **Nota:** Use `host.docker.internal` para acessar o PostgreSQL rodando no host (via `docker compose up -d`). Em Linux sem Docker Desktop, pode ser necessário usar `--network host` ou o IP do host.
+
+### Pré-requisitos para o build
+
+- O `package-lock.json` deve existir (o `npm ci` exige).
+- O Prisma Client deve ter sido gerado previamente (`src/generated/prisma/`), pois o estágio de build copia essa pasta para `dist/generated`.
 
 ---
 
