@@ -218,3 +218,27 @@ export const UpsertUserTrainDataSchema = z.object({
   age: z.number(),
   bodyFatPercentage: z.number(),
 });
+
+export const HomeDataSchema = z.object({
+  activeWorkoutPlanId: z.uuid().optional(),
+  todayWorkoutDay: z
+    .object({
+      workoutPlanId: z.uuid(),
+      id: z.uuid(),
+      name: z.string(),
+      isRest: z.boolean(),
+      weekDay: z.enum(WeekDay),
+      estimatedDurationInSeconds: z.number(),
+      coverImageUrl: z.url().optional(),
+      exercisesCount: z.number(),
+    })
+    .optional(),
+  workoutStreak: z.number(),
+  consistencyByDay: z.record(
+    z.iso.date(),
+    z.object({
+      workoutDayCompleted: z.boolean(),
+      workoutDayStarted: z.boolean(),
+    }),
+  ),
+});

@@ -113,6 +113,9 @@ app.withTypeProvider<ZodTypeProvider>().route({
 app.route({
   method: ["GET", "POST"],
   url: "/api/auth/*",
+  schema: {
+    hide: true, // Esconde esta rota da documentação do Swagger UI para evitar confusão com o endpoint de autenticação do Better Auth
+  },
   async handler(request, reply) {
     try {
       // Constrói a URL completa da requisição usando o caminho e os headers do Fastify
