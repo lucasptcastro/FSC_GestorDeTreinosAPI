@@ -13,6 +13,7 @@ import {
 import z from "zod";
 
 import { auth } from "./lib/auth.js";
+import { env } from "./lib/env.js";
 import { aiRoutes } from "./routes/ai.js";
 import { homeRoutes } from "./routes/home.js";
 import { meRoutes } from "./routes/me.js";
@@ -37,8 +38,8 @@ await app.register(fastifySwagger, {
     },
     servers: [
       {
-        description: "Localhost",
-        url: "http://localhost:8080",
+        description: "API Base URL",
+        url: env.API_BASE_URL,
       },
     ],
   },
@@ -47,7 +48,7 @@ await app.register(fastifySwagger, {
 
 // Registra o plugin do Swagger UI para servir a documentação interativa da API
 await app.register(fastifyCors, {
-  origin: ["http://localhost:3000"], // Permite apenas solicitações de origens confiáveis
+  origin: [env.WEB_APP_BASE_URL], // Permite apenas solicitações de origens confiáveis
   credentials: true, // Permite o envio de cookies e credenciais de autenticação
 });
 
@@ -152,7 +153,7 @@ app.route({
 });
 
 // Inicia o servidor Fastify na porta especificada na variável de ambiente PORT ou na porta 8080 por padrão
-app.listen({ port: Number(process.env.PORT) || 8080 }, function (err) {
+app.listen({ port: env.PORT }, function (err) {
   if (err) {
     app.log.error(err);
     process.exit(1);
