@@ -20,4 +20,9 @@ export const auth = betterAuth({
     provider: "postgresql",
   }),
   plugins: [openAPI()],
+  advanced: {
+    crossSubDomainCookies: {
+      enabled: true, // Habilita cookies entre subdomínios para permitir autenticação em diferentes partes do aplicativo
+    },
+  },
 });
