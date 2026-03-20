@@ -169,7 +169,7 @@ export class GetHomeData {
       }
 
       if (restWeekDays.has(weekDay)) {
-        streak++;
+        // streak++; // Se quiser contar os dias de descanso como parte da streak, descomente esta linha
         day = day.subtract(1, "day");
         continue;
       }

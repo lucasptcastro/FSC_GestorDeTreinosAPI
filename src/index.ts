@@ -38,7 +38,7 @@ await app.register(fastifySwagger, {
     servers: [
       {
         description: "Localhost",
-        url: "http://localhost:8081",
+        url: "http://localhost:8080",
       },
     ],
   },
@@ -151,8 +151,8 @@ app.route({
   },
 });
 
-// Inicia o servidor Fastify na porta especificada na variável de ambiente PORT ou na porta 8081 por padrão
-app.listen({ port: Number(process.env.PORT) || 8081 }, function (err) {
+// Inicia o servidor Fastify na porta especificada na variável de ambiente PORT ou na porta 8080 por padrão
+app.listen({ port: Number(process.env.PORT) || 8080 }, function (err) {
   if (err) {
     app.log.error(err);
     process.exit(1);
