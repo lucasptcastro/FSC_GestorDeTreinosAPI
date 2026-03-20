@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx --watch src/index.ts",
     "auth:generate": "better-auth generate",
-    "build": "tsc"
+    "build": "npx prisma generate && tsc"
   },
   "engines": {
     "node": "24.x"

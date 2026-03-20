@@ -167,7 +167,7 @@ app.route({
 });
 
 // Inicia o servidor Fastify na porta especificada na variável de ambiente PORT ou na porta 8080 por padrão
-app.listen({ port: env.PORT }, function (err) {
+app.listen({ host: "0.0.0.0", port: env.PORT }, function (err) {
   if (err) {
     app.log.error(err);
     process.exit(1);
