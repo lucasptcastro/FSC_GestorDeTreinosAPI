@@ -36,11 +36,7 @@ export class GetWorkoutPlan {
       },
     });
 
-    if (!workoutPlan) {
-      throw new NotFoundError("Workout plan not found");
-    }
-
-    if (workoutPlan.userId !== dto.userId) {
+    if (!workoutPlan || workoutPlan.userId !== dto.userId) {
       throw new NotFoundError("Workout plan not found");
     }
 

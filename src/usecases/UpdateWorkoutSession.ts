@@ -5,14 +5,14 @@ interface InputDto {
   userId: string;
   workoutPlanId: string;
   workoutDayId: string;
-  workoutSessionId: string;
-  completedAt: Date;
+  sessionId: string;
+  completedAt: string;
 }
 
 interface OutputDto {
   id: string;
-  completedAt: string;
   startedAt: string;
+  completedAt: string;
 }
 
 export class UpdateWorkoutSession {
@@ -21,11 +21,7 @@ export class UpdateWorkoutSession {
       where: { id: dto.workoutPlanId },
     });
 
-    if (!workoutPlan) {
-      throw new NotFoundError("Workout plan not found");
-    }
-
-    if (workoutPlan.userId !== dto.userId) {
+    if (!workoutPlan || workoutPlan.userId !== dto.userId) {
       throw new NotFoundError("Workout plan not found");
     }
 
@@ -37,25 +33,23 @@ export class UpdateWorkoutSession {
       throw new NotFoundError("Workout day not found");
     }
 
-    const workoutSession = await prisma.workoutSession.findUnique({
-      where: { id: dto.workoutSessionId, workoutDayId: dto.workoutDayId },
+    const session = await prisma.workoutSession.findUnique({
+      where: { id: dto.sessionId, workoutDayId: dto.workoutDayId },
     });
 
-    if (!workoutSession) {
+    if (!session) {
       throw new NotFoundError("Workout session not found");
     }
 
     const updatedSession = await prisma.workoutSession.update({
-      where: { id: dto.workoutSessionId },
-      data: {
-        completedAt: dto.completedAt,
-      },
+      where: { id: dto.sessionId },
+      data: { completedAt: new Date(dto.completedAt) },
     });
 
     return {
       id: updatedSession.id,
-      completedAt: updatedSession.completedAt?.toISOString() ?? "",
       startedAt: updatedSession.startedAt.toISOString(),
+      completedAt: updatedSession.completedAt!.toISOString(),
     };
   }
 }

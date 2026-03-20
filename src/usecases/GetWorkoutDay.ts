@@ -43,20 +43,14 @@ export class GetWorkoutDay {
       where: { id: dto.workoutPlanId },
     });
 
-    if (!workoutPlan) {
-      throw new NotFoundError("Workout plan not found");
-    }
-
-    if (workoutPlan.userId !== dto.userId) {
+    if (!workoutPlan || workoutPlan.userId !== dto.userId) {
       throw new NotFoundError("Workout plan not found");
     }
 
     const workoutDay = await prisma.workoutDay.findUnique({
       where: { id: dto.workoutDayId, workoutPlanId: dto.workoutPlanId },
       include: {
-        exercises: {
-          orderBy: { order: "asc" },
-        },
+        exercises: { orderBy: { order: "asc" } },
         sessions: true,
       },
     });

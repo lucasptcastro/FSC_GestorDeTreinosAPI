@@ -15,13 +15,12 @@ interface OutputDto {
     name: string;
     weekDay: WeekDay;
     isRest: boolean;
-    coverImageUrl?: string;
     estimatedDurationInSeconds: number;
+    coverImageUrl?: string;
     exercises: Array<{
       id: string;
-      name: string;
       order: number;
-      workoutDayId: string;
+      name: string;
       sets: number;
       reps: number;
       restTimeInSeconds: number;
@@ -34,18 +33,16 @@ export class ListWorkoutPlans {
     const workoutPlans = await prisma.workoutPlan.findMany({
       where: {
         userId: dto.userId,
-        ...(dto.active !== undefined && { isActive: dto.active }),
+        ...(dto.active !== undefined ? { isActive: dto.active } : {}),
       },
-      orderBy: { createdAt: "desc" },
       include: {
         workoutDays: {
           include: {
-            exercises: {
-              orderBy: { order: "asc" },
-            },
+            exercises: { orderBy: { order: "asc" } },
           },
         },
       },
+      orderBy: { createdAt: "desc" },
     });
 
     return workoutPlans.map((plan) => ({
@@ -57,13 +54,12 @@ export class ListWorkoutPlans {
         name: day.name,
         weekDay: day.weekDay,
         isRest: day.isRest,
-        coverImageUrl: day.coverImageUrl ?? undefined,
         estimatedDurationInSeconds: day.estimatedDurationInSeconds,
+        coverImageUrl: day.coverImageUrl ?? undefined,
         exercises: day.exercises.map((exercise) => ({
           id: exercise.id,
-          name: exercise.name,
           order: exercise.order,
-          workoutDayId: exercise.workoutDayId,
+          name: exercise.name,
           sets: exercise.sets,
           reps: exercise.reps,
           restTimeInSeconds: exercise.restTimeInSeconds,

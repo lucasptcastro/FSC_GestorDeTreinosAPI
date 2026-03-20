@@ -7,7 +7,7 @@ import { auth } from "../lib/auth.js";
 import {
   ErrorSchema,
   StatsQuerySchema,
-  StatsResponseSchema,
+  StatsSchema,
 } from "../schemas/index.js";
 import { GetStats } from "../usecases/GetStats.js";
 
@@ -18,10 +18,10 @@ export const statsRoutes = async (app: FastifyInstance) => {
     schema: {
       operationId: "getStats",
       tags: ["Stats"],
-      summary: "Get workout statistics for a date range",
+      summary: "Get user workout stats",
       querystring: StatsQuerySchema,
       response: {
-        200: StatsResponseSchema,
+        200: StatsSchema,
         401: ErrorSchema,
         404: ErrorSchema,
         500: ErrorSchema,
@@ -32,7 +32,6 @@ export const statsRoutes = async (app: FastifyInstance) => {
         const session = await auth.api.getSession({
           headers: fromNodeHeaders(request.headers),
         });
-
         if (!session) {
           return reply.status(401).send({
             error: "Unauthorized",
@@ -41,7 +40,6 @@ export const statsRoutes = async (app: FastifyInstance) => {
         }
 
         const getStats = new GetStats();
-
         const result = await getStats.execute({
           userId: session.user.id,
           from: request.query.from,

@@ -1,14 +1,11 @@
 import { fromNodeHeaders } from "better-auth/node";
 import { FastifyInstance } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
+import z from "zod";
 
 import { NotFoundError } from "../errors/index.js";
 import { auth } from "../lib/auth.js";
-import {
-  ErrorSchema,
-  HomeParamsSchema,
-  HomeResponseSchema,
-} from "../schemas/index.js";
+import { ErrorSchema, HomeDataSchema } from "../schemas/index.js";
 import { GetHomeData } from "../usecases/GetHomeData.js";
 
 export const homeRoutes = async (app: FastifyInstance) => {
@@ -18,10 +15,12 @@ export const homeRoutes = async (app: FastifyInstance) => {
     schema: {
       operationId: "getHomeData",
       tags: ["Home"],
-      summary: "Get home page data for a given date",
-      params: HomeParamsSchema,
+      summary: "Get home page data",
+      params: z.object({
+        date: z.iso.date(),
+      }),
       response: {
-        200: HomeResponseSchema,
+        200: HomeDataSchema,
         401: ErrorSchema,
         404: ErrorSchema,
         500: ErrorSchema,
@@ -32,7 +31,6 @@ export const homeRoutes = async (app: FastifyInstance) => {
         const session = await auth.api.getSession({
           headers: fromNodeHeaders(request.headers),
         });
-
         if (!session) {
           return reply.status(401).send({
             error: "Unauthorized",
@@ -41,7 +39,6 @@ export const homeRoutes = async (app: FastifyInstance) => {
         }
 
         const getHomeData = new GetHomeData();
-
         const result = await getHomeData.execute({
           userId: session.user.id,
           date: request.params.date,
@@ -59,8 +56,8 @@ export const homeRoutes = async (app: FastifyInstance) => {
         }
 
         return reply.status(500).send({
-          error: "Internal Server Error",
-          code: "INTERNAL_ERROR",
+          error: "Internal server error",
+          code: "INTERNAL_SERVER_ERROR",
         });
       }
     },
