@@ -39,6 +39,7 @@ interface OutputDto {
     {
       workoutDayCompleted: boolean;
       workoutDayStarted: boolean;
+      isRest: boolean;
     }
   >;
 }
@@ -81,7 +82,11 @@ export class GetHomeData {
 
     const consistencyByDay: Record<
       string,
-      { workoutDayCompleted: boolean; workoutDayStarted: boolean }
+      {
+        workoutDayCompleted: boolean;
+        workoutDayStarted: boolean;
+        isRest: boolean;
+      }
     > = {};
 
     for (let i = 0; i < 7; i++) {
@@ -92,12 +97,22 @@ export class GetHomeData {
         (s) => dayjs.utc(s.startedAt).format("YYYY-MM-DD") === dateKey,
       );
 
+      const weekDay = WEEKDAY_MAP[day.day()];
+      const matchingWorkoutDay = workoutPlan?.workoutDays.find(
+        (wd) => wd.weekDay === weekDay,
+      );
+      const isRest = matchingWorkoutDay?.isRest ?? false;
+
       const workoutDayStarted = daySessions.length > 0;
       const workoutDayCompleted = daySessions.some(
         (s) => s.completedAt !== null,
       );
 
-      consistencyByDay[dateKey] = { workoutDayCompleted, workoutDayStarted };
+      consistencyByDay[dateKey] = {
+        workoutDayCompleted,
+        workoutDayStarted,
+        isRest,
+      };
     }
 
     let workoutStreak = 0;
@@ -169,7 +184,7 @@ export class GetHomeData {
       }
 
       if (restWeekDays.has(weekDay)) {
-        // streak++; // Se quiser contar os dias de descanso como parte da streak, descomente esta linha
+        streak++; // Se quiser contar os dias de descanso como parte da streak, descomente esta linha
         day = day.subtract(1, "day");
         continue;
       }
@@ -177,6 +192,11 @@ export class GetHomeData {
       const dateKey = day.format("YYYY-MM-DD");
       if (completedDates.has(dateKey)) {
         streak++;
+        day = day.subtract(1, "day");
+        continue;
+      }
+
+      if (day.isSame(currentDate, "day")) {
         day = day.subtract(1, "day");
         continue;
       }

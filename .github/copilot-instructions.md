@@ -52,6 +52,7 @@ Swagger JSON em `/swagger.json`, Scalar UI em `/docs`. Endpoints de auth sao mes
 ## Git
 
 - **SEMPRE** use [Conventional Commits](https://www.conventionalcommits.org/) para mensagens de commit. Exemplo: `feat: add start workout session endpoint`, `fix: workout plan validation`, `docs: update architecture rules`.
+- **SEMPRE** escreva mensagens de commit em inglês. **NUNCA** use português em mensagens de commit.
 - **NUNCA** faça commit sem a permissão explícita do usuário. Sempre aguarde o usuário pedir para commitar.
 
 ## Rotas de API

@@ -34,6 +34,7 @@ export const StatsSchema = z.object({
     z.object({
       workoutDayCompleted: z.boolean(),
       workoutDayStarted: z.boolean(),
+      isRest: z.boolean(),
     }),
   ),
   completedWorkoutsCount: z.number(),
@@ -61,6 +62,7 @@ export const HomeDataSchema = z.object({
     z.object({
       workoutDayCompleted: z.boolean(),
       workoutDayStarted: z.boolean(),
+      isRest: z.boolean(),
     }),
   ),
 });

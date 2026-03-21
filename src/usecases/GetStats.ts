@@ -30,6 +30,7 @@ interface OutputDto {
     {
       workoutDayCompleted: boolean;
       workoutDayStarted: boolean;
+      isRest: boolean;
     }
   >;
   completedWorkoutsCount: number;
@@ -69,25 +70,38 @@ export class GetStats {
 
     const consistencyByDay: Record<
       string,
-      { workoutDayCompleted: boolean; workoutDayStarted: boolean }
+      {
+        workoutDayCompleted: boolean;
+        workoutDayStarted: boolean;
+        isRest: boolean;
+      }
     > = {};
 
-    sessions.forEach((session) => {
-      const dateKey = dayjs.utc(session.startedAt).format("YYYY-MM-DD");
+    const totalDays = toDate.diff(fromDate, "day") + 1;
+    for (let i = 0; i < totalDays; i++) {
+      const day = fromDate.add(i, "day");
+      const dateKey = day.format("YYYY-MM-DD");
+      const weekDay = WEEKDAY_MAP[day.day()];
+      const matchingWorkoutDay = workoutPlan.workoutDays.find(
+        (wd) => wd.weekDay === weekDay,
+      );
+      const isRest = matchingWorkoutDay?.isRest ?? false;
 
-      if (!consistencyByDay[dateKey]) {
-        consistencyByDay[dateKey] = {
-          workoutDayCompleted: false,
-          workoutDayStarted: false,
-        };
-      }
+      const daySessions = sessions.filter(
+        (s) => dayjs.utc(s.startedAt).format("YYYY-MM-DD") === dateKey,
+      );
 
-      consistencyByDay[dateKey].workoutDayStarted = true;
+      const workoutDayStarted = daySessions.length > 0;
+      const workoutDayCompleted = daySessions.some(
+        (s) => s.completedAt !== null,
+      );
 
-      if (session.completedAt !== null) {
-        consistencyByDay[dateKey].workoutDayCompleted = true;
-      }
-    });
+      consistencyByDay[dateKey] = {
+        workoutDayCompleted,
+        workoutDayStarted,
+        isRest,
+      };
+    }
 
     const completedSessions = sessions.filter((s) => s.completedAt !== null);
     const completedWorkoutsCount = completedSessions.length;
@@ -153,6 +167,7 @@ export class GetStats {
       }
 
       if (restWeekDays.has(weekDay)) {
+        streak++;
         day = day.subtract(1, "day");
         continue;
       }
@@ -160,6 +175,11 @@ export class GetStats {
       const dateKey = day.format("YYYY-MM-DD");
       if (completedDates.has(dateKey)) {
         streak++;
+        day = day.subtract(1, "day");
+        continue;
+      }
+
+      if (day.isSame(currentDate, "day")) {
         day = day.subtract(1, "day");
         continue;
       }
