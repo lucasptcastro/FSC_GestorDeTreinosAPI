@@ -20,6 +20,7 @@ interface InputDto {
   userId: string;
   from: string;
   to: string;
+  date: string;
 }
 
 interface OutputDto {
@@ -99,10 +100,11 @@ export class GetStats {
       return total + end.diff(start, "second");
     }, 0);
 
+    const currentDate = dayjs.utc(dto.date);
     const workoutStreak = await this.calculateStreak(
       workoutPlan.id,
       workoutPlan.workoutDays,
-      toDate,
+      currentDate,
     );
 
     return {
