@@ -83,6 +83,7 @@ export const GetWorkoutDaySchema = z.object({
       sets: z.number(),
       reps: z.number(),
       restTimeInSeconds: z.number(),
+      completed: z.boolean().optional(),
     }),
   ),
   sessions: z.array(

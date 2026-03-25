@@ -28,6 +28,7 @@ interface OutputDto {
     sets: number;
     reps: number;
     restTimeInSeconds: number;
+    completed?: boolean;
   }>;
   sessions: Array<{
     id: string;
@@ -50,7 +51,12 @@ export class GetWorkoutDay {
     const workoutDay = await prisma.workoutDay.findUnique({
       where: { id: dto.workoutDayId, workoutPlanId: dto.workoutPlanId },
       include: {
-        exercises: { orderBy: { order: "asc" } },
+        exercises: {
+          orderBy: { order: "asc" },
+          include: {
+            completedWorkoutExercises: true,
+          },
+        },
         sessions: true,
       },
     });
@@ -74,6 +80,7 @@ export class GetWorkoutDay {
         sets: exercise.sets,
         reps: exercise.reps,
         restTimeInSeconds: exercise.restTimeInSeconds,
+        completed: exercise.completedWorkoutExercises.length > 0,
       })),
       sessions: workoutDay.sessions.map((session) => ({
         id: session.id,
