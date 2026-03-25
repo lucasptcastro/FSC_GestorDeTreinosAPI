@@ -9,6 +9,7 @@ import {
   WorkoutPlanNotActiveError,
 } from "../errors/index.js";
 import { auth } from "../lib/auth.js";
+import { WorkoutExerciseSchema } from "../schemas/index.js";
 import {
   ErrorSchema,
   GetWorkoutDaySchema,
@@ -22,12 +23,66 @@ import {
 } from "../schemas/index.js";
 import { CreateWorkoutPlan } from "../usecases/CreateWorkoutPlan.js";
 import { GetWorkoutDay } from "../usecases/GetWorkoutDay.js";
+import { GetWorkoutExercise } from "../usecases/GetWorkoutExercise.js";
 import { GetWorkoutPlan } from "../usecases/GetWorkoutPlan.js";
 import { ListWorkoutPlans } from "../usecases/ListWorkoutPlans.js";
 import { StartWorkoutSession } from "../usecases/StartWorkoutSession.js";
 import { UpdateWorkoutSession } from "../usecases/UpdateWorkoutSession.js";
 
 export const workoutPlanRoutes = async (app: FastifyInstance) => {
+  app.withTypeProvider<ZodTypeProvider>().route({
+    method: "GET",
+    url: "/exercises/:exerciseId",
+    schema: {
+      operationId: "getWorkoutExercise",
+      tags: ["Workout Exercise"],
+      summary: "Get a workout exercise",
+      params: z.object({
+        exerciseId: z.string().uuid(),
+      }),
+      response: {
+        200: WorkoutExerciseSchema,
+        401: ErrorSchema,
+        404: ErrorSchema,
+        500: ErrorSchema,
+      },
+    },
+    handler: async (
+      request: import("fastify").FastifyRequest<{
+        Params: { exerciseId: string };
+      }>,
+      reply,
+    ) => {
+      try {
+        const session = await auth.api.getSession({
+          headers: fromNodeHeaders(request.headers),
+        });
+        if (!session) {
+          return reply.status(401).send({
+            error: "Unauthorized",
+            code: "UNAUTHORIZED",
+          });
+        }
+        const getWorkoutExercise = new GetWorkoutExercise();
+        const result = await getWorkoutExercise.execute({
+          id: request.params.exerciseId,
+        });
+        return reply.status(200).send(result);
+      } catch (error) {
+        app.log.error(error);
+        if (error instanceof NotFoundError) {
+          return reply.status(404).send({
+            error: error.message,
+            code: "NOT_FOUND_ERROR",
+          });
+        }
+        return reply.status(500).send({
+          error: "Internal server error",
+          code: "INTERNAL_SERVER_ERROR",
+        });
+      }
+    },
+  });
   app.withTypeProvider<ZodTypeProvider>().route({
     method: "GET",
     url: "/",

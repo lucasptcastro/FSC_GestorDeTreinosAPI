@@ -23,6 +23,26 @@ enum WeekDay {
   SATURDAY
 }
 
+enum TrainingTechnique {
+  REST_PAUSE
+  DROP_SET
+  BI_SET
+  TRI_SET
+  GIANT_SET
+  FST_7
+  FORCED_REPS
+  NEGATIVE_REPS
+  TEMPO_CONTROL
+  ISOMETRY
+  CLUSTER_SET
+  PYRAMID
+  PRE_EXHAUSTION
+  POST_EXHAUSTION
+  TWENTY_ONE
+  OCCLUSION
+  CHEAT_REPS
+}
+
 model User {
   id                  String        @id
   workoutPlans        WorkoutPlan[]
@@ -70,16 +90,18 @@ model WorkoutDay {
 }
 
 model WorkoutExercise {
-  id                String     @id @default(uuid())
+  id                String             @id @default(uuid())
   name              String
   order             Int
   workoutDayId      String
-  workoutDay        WorkoutDay @relation(fields: [workoutDayId], references: [id], onDelete: Cascade) // relação entre WorkoutExercise e WorkoutDay, onde workoutDayId é a chave estrangeira
+  workoutDay        WorkoutDay         @relation(fields: [workoutDayId], references: [id], onDelete: Cascade) // relação entre WorkoutExercise e WorkoutDay, onde workoutDayId é a chave estrangeira
   sets              Int
   reps              Int
   restTimeInSeconds Int
-  createdAt         DateTime   @default(now()) @db.Timestamptz()
-  updatedAt         DateTime   @updatedAt @db.Timestamptz()
+  observation       String?
+  trainingTechnique TrainingTechnique?
+  createdAt         DateTime           @default(now()) @db.Timestamptz()
+  updatedAt         DateTime           @updatedAt @db.Timestamptz()
 }
 
 model WorkoutSession {

@@ -1,6 +1,19 @@
+export const WorkoutExerciseSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  order: z.number(),
+  workoutDayId: z.string().uuid(),
+  sets: z.number(),
+  reps: z.number(),
+  restTimeInSeconds: z.number(),
+  observation: z.string().nullable().optional(),
+  trainingTechnique: z.enum(TrainingTechnique).nullable().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
 import z from "zod";
 
-import { WeekDay } from "../generated/prisma/enums.js";
+import { TrainingTechnique, WeekDay } from "../generated/prisma/enums.js";
 
 export const ErrorSchema = z.object({
   error: z.string(),
@@ -139,6 +152,8 @@ export const ListWorkoutPlansSchema = z.array(
             sets: z.number(),
             reps: z.number(),
             restTimeInSeconds: z.number(),
+            observation: z.string().optional(),
+            trainingTechnique: z.enum(TrainingTechnique).optional(),
           }),
         ),
       }),
@@ -187,6 +202,8 @@ export const WorkoutPlanSchema = z.object({
           sets: z.number().min(1),
           reps: z.number().min(1),
           restTimeInSeconds: z.number().min(1),
+          observation: z.string().optional(),
+          trainingTechnique: z.enum(TrainingTechnique).optional(),
         }),
       ),
     }),
