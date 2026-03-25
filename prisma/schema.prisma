@@ -24,20 +24,21 @@ enum WeekDay {
 }
 
 model User {
-  id                  String        @id
-  workoutPlans        WorkoutPlan[]
-  name                String
-  email               String
-  emailVerified       Boolean       @default(false)
-  image               String?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
-  sessions            Session[]
-  accounts            Account[]
-  weightInGrams       Int?
-  heightInCentimeters Int?
-  age                 Int?
-  bodyFatPercentage   Int? // 100 representa 100% 
+  id                        String                      @id
+  workoutPlans              WorkoutPlan[]
+  name                      String
+  email                     String
+  emailVerified             Boolean                     @default(false)
+  image                     String?
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @updatedAt
+  sessions                  Session[]
+  accounts                  Account[]
+  weightInGrams             Int?
+  heightInCentimeters       Int?
+  age                       Int?
+  bodyFatPercentage         Int? // 100 representa 100% 
+  completedWorkoutExercises CompletedWorkoutExercises[]
 
   @@unique([email])
   @@map("user")
@@ -70,16 +71,26 @@ model WorkoutDay {
 }
 
 model WorkoutExercise {
-  id                String     @id @default(uuid())
-  name              String
-  order             Int
-  workoutDayId      String
-  workoutDay        WorkoutDay @relation(fields: [workoutDayId], references: [id], onDelete: Cascade) // relação entre WorkoutExercise e WorkoutDay, onde workoutDayId é a chave estrangeira
-  sets              Int
-  reps              Int
-  restTimeInSeconds Int
-  createdAt         DateTime   @default(now()) @db.Timestamptz()
-  updatedAt         DateTime   @updatedAt @db.Timestamptz()
+  id                        String                      @id @default(uuid())
+  name                      String
+  order                     Int
+  workoutDayId              String
+  workoutDay                WorkoutDay                  @relation(fields: [workoutDayId], references: [id], onDelete: Cascade) // relação entre WorkoutExercise e WorkoutDay, onde workoutDayId é a chave estrangeira
+  sets                      Int
+  reps                      Int
+  restTimeInSeconds         Int
+  createdAt                 DateTime                    @default(now()) @db.Timestamptz()
+  updatedAt                 DateTime                    @updatedAt @db.Timestamptz()
+  completedWorkoutExercises CompletedWorkoutExercises[]
+}
+
+model CompletedWorkoutExercises {
+  id                String          @id @default(uuid())
+  workoutExerciseId String
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade) // relação entre CompletedWorkoutExercises e WorkoutExercise, onde workoutExerciseId é a chave estrangeira
+  userId            String
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completedAt       DateTime        @default(now()) @db.Timestamptz()
 }
 
 model WorkoutSession {

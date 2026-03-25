@@ -15,6 +15,7 @@ import z from "zod";
 import { auth } from "./lib/auth.js";
 import { env } from "./lib/env.js";
 import { aiRoutes } from "./routes/ai.js";
+import { exerciseRoutes } from "./routes/exercise.js";
 import { homeRoutes } from "./routes/home.js";
 import { meRoutes } from "./routes/me.js";
 import { statsRoutes } from "./routes/stats.js";
@@ -91,6 +92,7 @@ await app.register(homeRoutes, { prefix: "/home" });
 await app.register(statsRoutes, { prefix: "/stats" });
 await app.register(aiRoutes, { prefix: "/ai" });
 await app.register(meRoutes, { prefix: "/me" });
+await app.register(exerciseRoutes, { prefix: "/exercises" });
 
 // Define a rota GET "/swagger.json" para retornar a especificação OpenAPI gerada pelo fastifySwagger, escondendo esta rota da documentação do Swagger UI para evitar confusão com o endpoint de autenticação do Better Auth
 app.withTypeProvider<ZodTypeProvider>().route({
